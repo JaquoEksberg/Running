@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>PaceUp – Interval Runner</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --border: #2a2a3a;
+      --run: #e8ff47;
+      --walk: #47c4ff;
+      --warm: #ff8547;
+      --cool: #a347ff;
+      --text: #f0f0f5;
+      --muted: #6b6b80;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* ── SCREENS ── */
+    .screen { display: none; flex-direction: column; flex: 1; }
+    .screen.active { display: flex; }
+
+    /* ── HEADER ── */
+    header {
+      padding: 20px 24px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 2px;
+      color: var(--run);
+    }
+    .header-sub { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+
+    /* ── HOME SCREEN ── */
+    #screen-home { padding: 0 24px 32px; gap: 0; }
+
+    .runs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 32px 0 16px;
+    }
+    .runs-header h2 { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px; color: var(--muted); }
+
+    .btn-primary {
+      background: var(--run);
+      color: #0a0a0f;
+      border: none;
+      border-radius: 100px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.1s;
+    }
+    .btn-primary:active { transform: scale(0.96); opacity: 0.85; }
+
+    .run-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .run-card:hover { border-color: var(--run); }
+    .run-card-info h3 { font-size: 15px; font-weight: 500; }
+    .run-card-info p { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .run-card-stats { text-align: right; }
+    .run-card-stats .big { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--run); }
+    .run-card-stats .small { font-size: 11px; color: var(--muted); }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; line-height: 1.6; }
+
+    /* ── BUILD SCREEN ── */
+    #screen-build { padding: 0 24px 32px; overflow-y: auto; }
+
+    .back-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      padding: 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .back-btn:hover { color: var(--text); }
+
+    .build-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 38px;
+      letter-spacing: 2px;
+      margin: 8px 0 24px;
+      line-height: 1;
+    }
+
+    .field-group { margin-bottom: 20px; }
+    .field-group label {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .field-group input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: var(--text);
+      font-size: 15px;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field-group input:focus { border-color: var(--run); }
+
+    .section-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      letter-spacing: 1px;
+      margin: 28px 0 12px;
+      color: var(--muted);
+    }
+
+    .intervals-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .interval-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+    }
+    .interval-type-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .interval-row[data-type="warmup"] .interval-type-dot { background: var(--warm); }
+    .interval-row[data-type="run"] .interval-type-dot { background: var(--run); }
+    .interval-row[data-type="walk"] .interval-type-dot { background: var(--walk); }
+    .interval-row[data-type="cooldown"] .interval-type-dot { background: var(--cool); }
+
+    .interval-row select, .interval-row input[type="number"] {
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      outline: none;
+      cursor: pointer;
+    }
+    .interval-row select option { background: var(--surface); }
+    .interval-row input[type="number"] {
+      width: 52px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .interval-row .del-btn {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 18px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 4px;
+    }
+    .interval-row .del-btn:hover { color: #ff4757; }
+
+    .interval-time-group { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: 13px; margin-left: auto; }
+
+    .add-interval-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .add-interval-row button {
+      flex: 1;
+      min-width: 80px;
+      padding: 10px 6px;
+      border-radius: 10px;
+      border: 1px dashed var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .add-interval-row button:hover { border-color: var(--run); color: var(--run); }
+
+    .save-row { margin-top: 32px; }
+
+    /* ── ACTIVE RUN SCREEN ── */
+    #screen-run {
+      padding: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .run-bg {
+      position: absolute;
+      inset: 0;
+      background: var(--bg);
+      transition: background 0.8s ease;
+      z-index: 0;
+    }
+    #screen-run.phase-run .run-bg { background: #0f1400; }
+    #screen-run.phase-walk .run-bg { background: #00111a; }
+    #screen-run.phase-warmup .run-bg { background: #140800; }
+    #screen-run.phase-cooldown .run-bg { background: #0d0014; }
+
+    .run-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      padding: 32px 24px 40px;
+      height: 100%;
+    }
+
+    .run-name-display {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .phase-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 56px;
+      letter-spacing: 4px;
+      text-align: center;
+      transition: color 0.5s;
+      line-height: 1;
+    }
+    #screen-run.phase-run .phase-label { color: var(--run); }
+    #screen-run.phase-walk .phase-label { color: var(--walk); }
+    #screen-run.phase-warmup .phase-label { color: var(--warm); }
+    #screen-run.phase-cooldown .phase-label { color: var(--cool); }
+
+    .phase-timer {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 96px;
+      letter-spacing: -2px;
+      line-height: 1;
+      margin: 8px 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .phase-progress-bar {
+      width: 100%;
+      max-width: 320px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+    .phase-progress-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 1s linear, background 0.5s;
+      background: var(--run);
+    }
+    #screen-run.phase-walk .phase-progress-fill { background: var(--walk); }
+    #screen-run.phase-warmup .phase-progress-fill { background: var(--warm); }
+    #screen-run.phase-cooldown .phase-progress-fill { background: var(--cool); }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      width: 100%;
+      max-width: 360px;
+      margin-bottom: 32px;
+    }
+    .stat-box {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 10px;
+      text-align: center;
+    }
+    .stat-box .val {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 26px;
+      line-height: 1;
+    }
+    .stat-box .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 4px; }
+
+    .next-up {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 32px;
+      text-align: center;
+    }
+    .next-up span { color: var(--text); }
+
+    .run-controls { display: flex; gap: 16px; }
+    .btn-control {
+      flex: 1;
+      padding: 16px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 500;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-control:active { transform: scale(0.97); }
+    .btn-control.danger { border-color: #ff4757; color: #ff4757; }
+    .btn-control.danger:hover { background: rgba(255,71,87,0.08); }
+
+    /* ── HISTORY SCREEN ── */
+    #screen-history { padding: 0 24px 32px; overflow-y: auto; }
+
+    .history-entry {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .history-entry h3 { font-size: 15px; font-weight: 500; }
+    .history-entry .meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .history-stats { display: flex; gap: 24px; margin-top: 12px; }
+    .history-stat .v { font-family: 'Bebas Neue', sans-serif; font-size: 22px; }
+    .history-stat .l { font-size: 11px; color: var(--muted); }
+
+    /* bottom nav */
+    .bottom-nav {
+      display: flex;
+      border-top: 1px solid var(--border);
+      background: var(--bg);
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+    }
+    .nav-btn {
+      flex: 1;
+      padding: 14px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 11px;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.15s;
+    }
+    .nav-btn .icon { font-size: 20px; }
+    .nav-btn.active { color: var(--run); }
+
+    /* misc */
+    .tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tag-run { background: rgba(232,255,71,0.12); color: var(--run); }
+    .tag-walk { background: rgba(71,196,255,0.12); color: var(--walk); }
+    .tag-warmup { background: rgba(255,133,71,0.12); color: var(--warm); }
+    .tag-cooldown { background: rgba(163,71,255,0.12); color: var(--cool); }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════ HOME SCREEN ══════════════════ -->
+<div id="screen-home" class="screen active">
+  <header>
+    <div>
+      <div class="logo">PaceUp</div>
+      <div class="header-sub">Interval Runner</div>
+    </div>
+  </header>
+
+  <div style="padding: 0 24px; flex:1; overflow-y:auto;">
+    <div class="runs-header">
+      <h2>Your Runs</h2>
+      <button class="btn-primary" onclick="goToBuild()">+ New Run</button>
+    </div>
+    <div id="run-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════ BUILD SCREEN ══════════════════ -->
+<div id="screen-build" class="screen">
+  <header>
+    <button class="back-btn" onclick="goHome()">← Back</button>
+  </header>
+  <div class="build-title">Build Run</div>
+
+  <div style="flex:1; overflow-y:auto; padding: 0 24px 32px;">
+    <div class="field-group">
+      <label>Run Name</label>
+      <input type="text" id="run-name-input" placeholder="e.g. Morning Intervals" />
+    </div>
+
+    <div class="section-label">Intervals</div>
+    <div class="intervals-list" id="intervals-list"></div>
+
+    <div class="add-interval-row" style="margin-top: 12px;">
+      <button onclick="addInterval('warmup')">🔥 Warm Up</button>
+      <button onclick="addInterval('run')">🏃 Run</button>
+      <button onclick="addInterval('walk')">🚶 Walk</button>
+      <button onclick="addInterval('cooldown')">❄️ Cool Down</button>
+    </div>
+
+    <div class="save-row">
+      <button class="btn-primary" style="width:100%; padding:16px; font-size:16px;" onclick="saveRun()">Save Run</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ ACTIVE RUN SCREEN ══════════════════ -->
+<div id="screen-run" class="screen">
+  <div class="run-bg"></div>
+  <div class="run-content">
+    <div class="run-name-display" id="run-display-name"></div>
+    <div class="phase-label" id="phase-label">GET READY</div>
+    <div class="phase-timer" id="phase-timer">0:00</div>
+    <div class="phase-progress-bar"><div class="phase-progress-fill" id="phase-progress" style="width:100%"></div></div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="val" id="stat-dist">0.00</div>
+        <div class="lbl">km</div>
+      </div>
+      <div class="stat-box">
+        <div class="val" id="stat-total">0:00</div>
+        <div class="lbl">Total</div>
+      </div>
+      <div class="stat-box">
+        <div class="val" id="stat-speed">0.0</div>
+        <div class="lbl">km/h avg</div>
+      </div>
+    </div>
+
+    <div class="next-up" id="next-up-label">Next: –</div>
+
+    <div class="run-controls">
+      <button class="btn-control" id="pause-btn" onclick="togglePause()">Pause</button>
+      <button class="btn-control danger" onclick="stopRun()">Stop</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ HISTORY SCREEN ══════════════════ -->
+<div id="screen-history" class="screen">
+  <header>
+    <div>
+      <div class="logo">PaceUp</div>
+      <div class="header-sub">History</div>
+    </div>
+  </header>
+  <div id="history-list" style="padding: 24px; flex:1; overflow-y:auto;"></div>
+</div>
+
+<!-- ══════════════════ BOTTOM NAV ══════════════════ -->
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="nav-btn active" id="nav-home" onclick="goHome()"><span class="icon">🏠</span> Home</button>
+  <button class="nav-btn" id="nav-history" onclick="goHistory()"><span class="icon">📋</span> History</button>
+</nav>
+
+<script>
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let savedRuns = JSON.parse(localStorage.getItem('paceup_runs') || '[]');
+let history   = JSON.parse(localStorage.getItem('paceup_history') || '[]');
+
+let buildIntervals = [];
+let activeRun = null;
+let runTimer = null;
+let geoWatch = null;
+let wakeLock = null;
+
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  const nav = document.getElementById('bottom-nav');
+  nav.style.display = id === 'run' ? 'none' : 'flex';
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (id === 'home') document.getElementById('nav-home').classList.add('active');
+  if (id === 'history') document.getElementById('nav-history').classList.add('active');
+}
+
+function goHome() { renderRunList(); showScreen('home'); }
+function goHistory() { renderHistory(); showScreen('history'); }
+function goToBuild() {
+  buildIntervals = [];
+  document.getElementById('run-name-input').value = '';
+  renderIntervals();
+  showScreen('build');
+}
+
+// ══════════════════════════════════════════════
+//  BUILD
+// ══════════════════════════════════════════════
+function addInterval(type) {
+  buildIntervals.push({ type, minutes: 1, seconds: 0 });
+  renderIntervals();
+}
+
+function removeInterval(i) {
+  buildIntervals.splice(i, 1);
+  renderIntervals();
+}
+
+function renderIntervals() {
+  const list = document.getElementById('intervals-list');
+  if (!buildIntervals.length) {
+    list.innerHTML = '<p style="color:var(--muted);font-size:13px;padding:12px 0;">Add intervals below ↓</p>';
+    return;
+  }
+  list.innerHTML = buildIntervals.map((iv, i) => `
+    <div class="interval-row" data-type="${iv.type}">
+      <div class="interval-type-dot"></div>
+      <select onchange="buildIntervals[${i}].type=this.value; renderIntervals()">
+        ${['warmup','run','walk','cooldown'].map(t =>
+          `<option value="${t}" ${t===iv.type?'selected':''}>${capitalize(t)}</option>`
+        ).join('')}
+      </select>
+      <div class="interval-time-group">
+        <input type="number" min="0" max="59" value="${iv.minutes}"
+          onchange="buildIntervals[${i}].minutes=+this.value" style="width:40px" /> min
+        <input type="number" min="0" max="59" value="${iv.seconds}"
+          onchange="buildIntervals[${i}].seconds=+this.value" style="width:40px" /> sec
+      </div>
+      <button class="del-btn" onclick="removeInterval(${i})">×</button>
+    </div>`).join('');
+}
+
+function saveRun() {
+  const name = document.getElementById('run-name-input').value.trim() || 'Unnamed Run';
+  if (!buildIntervals.length) { alert('Add at least one interval.'); return; }
+  const run = { id: Date.now(), name, intervals: JSON.parse(JSON.stringify(buildIntervals)) };
+  savedRuns.unshift(run);
+  localStorage.setItem('paceup_runs', JSON.stringify(savedRuns));
+  goHome();
+}
+
+// ══════════════════════════════════════════════
+//  HOME LIST
+// ══════════════════════════════════════════════
+function renderRunList() {
+  const el = document.getElementById('run-list');
+  if (!savedRuns.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">🏃</div><p>No runs yet.<br>Tap <strong>+ New Run</strong> to create your first interval session.</p></div>`;
+    return;
+  }
+  el.innerHTML = savedRuns.map(r => {
+    const totalSec = r.intervals.reduce((s, iv) => s + iv.minutes*60 + iv.seconds, 0);
+    return `<div class="run-card" onclick="startRun(${r.id})">
+      <div class="run-card-info">
+        <h3>${r.name}</h3>
+        <p>${r.intervals.length} intervals · ${fmtTime(totalSec)}</p>
+        <div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;">
+          ${[...new Set(r.intervals.map(iv=>iv.type))].map(t=>`<span class="tag tag-${t}">${capitalize(t)}</span>`).join('')}
+        </div>
+      </div>
+      <div class="run-card-stats">
+        <div class="big">${r.intervals.length}</div>
+        <div class="small">intervals</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+//  ACTIVE RUN
+// ══════════════════════════════════════════════
+function startRun(id) {
+  const run = savedRuns.find(r => r.id === id);
+  if (!run) return;
+
+  activeRun = {
+    run,
+    phaseIndex: 0,
+    phaseElapsed: 0,
+    totalElapsed: 0,
+    paused: false,
+    distanceKm: 0,
+    positions: [],
+    startTime: Date.now(),
+  };
+
+  document.getElementById('run-display-name').textContent = run.name;
+  updatePhaseUI();
+  showScreen('run');
+  acquireWakeLock();
+  startGPS();
+
+  runTimer = setInterval(tick, 1000);
+}
+
+function tick() {
+  if (!activeRun || activeRun.paused) return;
+
+  activeRun.phaseElapsed++;
+  activeRun.totalElapsed++;
+
+  const phase = activeRun.run.intervals[activeRun.phaseIndex];
+  const phaseDur = phase.minutes * 60 + phase.seconds;
+
+  if (activeRun.phaseElapsed >= phaseDur) {
+    activeRun.phaseIndex++;
+    if (activeRun.phaseIndex >= activeRun.run.intervals.length) {
+      finishRun();
+      return;
+    }
+    activeRun.phaseElapsed = 0;
+    playBeep(activeRun.run.intervals[activeRun.phaseIndex].type);
+    updatePhaseUI();
+  }
+
+  renderRunStats();
+}
+
+function updatePhaseUI() {
+  if (!activeRun) return;
+  const phase = activeRun.run.intervals[activeRun.phaseIndex];
+  const label = capitalize(phase.type === 'warmup' ? 'Warm Up' : phase.type === 'cooldown' ? 'Cool Down' : phase.type);
+  document.getElementById('phase-label').textContent = label;
+
+  const screenEl = document.getElementById('screen-run');
+  screenEl.className = 'screen active phase-' + phase.type;
+
+  const next = activeRun.run.intervals[activeRun.phaseIndex + 1];
+  document.getElementById('next-up-label').textContent = next
+    ? `Next: ${capitalize(next.type)} · ${fmtTime(next.minutes*60+next.seconds)}`
+    : 'Next: Finish 🎉';
+}
+
+function renderRunStats() {
+  if (!activeRun) return;
+  const phase = activeRun.run.intervals[activeRun.phaseIndex];
+  const phaseDur = phase.minutes * 60 + phase.seconds;
+  const remaining = phaseDur - activeRun.phaseElapsed;
+
+  document.getElementById('phase-timer').textContent = fmtTime(remaining);
+  document.getElementById('phase-progress').style.width = ((1 - activeRun.phaseElapsed / phaseDur) * 100) + '%';
+  document.getElementById('stat-total').textContent = fmtTime(activeRun.totalElapsed);
+  document.getElementById('stat-dist').textContent = activeRun.distanceKm.toFixed(2);
+
+  const elapsed = activeRun.totalElapsed;
+  const avgSpeed = elapsed > 0 ? (activeRun.distanceKm / (elapsed / 3600)) : 0;
+  document.getElementById('stat-speed').textContent = isFinite(avgSpeed) ? avgSpeed.toFixed(1) : '0.0';
+}
+
+function togglePause() {
+  if (!activeRun) return;
+  activeRun.paused = !activeRun.paused;
+  document.getElementById('pause-btn').textContent = activeRun.paused ? 'Resume' : 'Pause';
+}
+
+function stopRun() {
+  if (!confirm('Stop this run?')) return;
+  finishRun(true);
+}
+
+function finishRun(aborted = false) {
+  clearInterval(runTimer);
+  stopGPS();
+  releaseWakeLock();
+
+  if (activeRun) {
+    const entry = {
+      id: Date.now(),
+      name: activeRun.run.name,
+      date: new Date().toLocaleDateString(),
+      durationSec: activeRun.totalElapsed,
+      distanceKm: activeRun.distanceKm,
+      aborted,
+    };
+    history.unshift(entry);
+    localStorage.setItem('paceup_history', JSON.stringify(history));
+  }
+  activeRun = null;
+
+  if (!aborted) playBeep('done');
+  goHome();
+}
+
+// ══════════════════════════════════════════════
+//  HISTORY
+// ══════════════════════════════════════════════
+function renderHistory() {
+  const el = document.getElementById('history-list');
+  if (!history.length) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No completed runs yet.<br>Start a run to see it here.</p></div>';
+    return;
+  }
+  el.innerHTML = history.map(h => `
+    <div class="history-entry">
+      <h3>${h.name}</h3>
+      <div class="meta">${h.date}${h.aborted ? ' · stopped early' : ''}</div>
+      <div class="history-stats">
+        <div class="history-stat"><div class="v">${fmtTime(h.durationSec)}</div><div class="l">Duration</div></div>
+        <div class="history-stat"><div class="v">${h.distanceKm.toFixed(2)}</div><div class="l">km</div></div>
+        <div class="history-stat"><div class="v">${h.durationSec > 0 ? (h.distanceKm/(h.durationSec/3600)).toFixed(1) : '0.0'}</div><div class="l">km/h avg</div></div>
+      </div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+//  GPS
+// ══════════════════════════════════════════════
+function startGPS() {
+  if (!navigator.geolocation) return;
+  geoWatch = navigator.geolocation.watchPosition(pos => {
+    if (!activeRun) return;
+    const coord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    const prev = activeRun.positions.at(-1);
+    if (prev) {
+      activeRun.distanceKm += haversine(prev.lat, prev.lng, coord.lat, coord.lng);
+    }
+    activeRun.positions.push(coord);
+  }, null, { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 });
+}
+
+function stopGPS() {
+  if (geoWatch !== null) { navigator.geolocation.clearWatch(geoWatch); geoWatch = null; }
+}
+
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ══════════════════════════════════════════════
+//  AUDIO — Web Audio API tones (no files needed)
+// ══════════════════════════════════════════════
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playBeep(type) {
+  try {
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+
+    const configs = {
+      run:      [{ freq: 880, dur: 0.12 }, { freq: 1046, dur: 0.2 }],
+      walk:     [{ freq: 523, dur: 0.15 }, { freq: 440, dur: 0.25 }],
+      warmup:   [{ freq: 660, dur: 0.15 }, { freq: 784, dur: 0.15 }, { freq: 880, dur: 0.2 }],
+      cooldown: [{ freq: 784, dur: 0.15 }, { freq: 659, dur: 0.15 }, { freq: 523, dur: 0.25 }],
+      done:     [{ freq: 523, dur: 0.1 }, { freq: 659, dur: 0.1 }, { freq: 784, dur: 0.1 }, { freq: 1046, dur: 0.35 }],
+    };
+
+    const notes = configs[type] || configs.run;
+    let t = ctx.currentTime + 0.05;
+    notes.forEach(n => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = n.freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.4, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + n.dur);
+      osc.start(t); osc.stop(t + n.dur + 0.05);
+      t += n.dur + 0.04;
+    });
+  } catch(e) { console.warn('Audio error', e); }
+}
+
+// Unlock audio on first user interaction
+document.addEventListener('click', () => {
+  try { getAudioCtx().resume(); } catch(e) {}
+}, { once: true });
+
+// ══════════════════════════════════════════════
+//  WAKE LOCK
+// ══════════════════════════════════════════════
+async function acquireWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch(e) { console.warn('Wake lock not available'); }
+}
+
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release(); wakeLock = null; }
+}
+
+// ══════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════
+function fmtTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+renderRunList();
+</script>
+</body>
+</html>
