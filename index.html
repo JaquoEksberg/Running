@@ -794,47 +794,27 @@ function haversine(lat1, lng1, lat2, lng2) {
 }
 
 // ══════════════════════════════════════════════
-//  AUDIO — Web Audio API tones (no files needed)
+//  AUDIO — Text-to-speech via Web Speech API
 // ══════════════════════════════════════════════
-let audioCtx = null;
-function getAudioCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
-}
+const phrases = {
+  run:      "Start running!",
+  walk:     "Start walking",
+  warmup:   "Begin warm up",
+  cooldown: "Begin cool down",
+  done:     "Run complete. Great job!",
+};
 
 function playBeep(type) {
   try {
-    const ctx = getAudioCtx();
-    if (ctx.state === 'suspended') ctx.resume();
-
-    const configs = {
-      run:      [{ freq: 880, dur: 0.12 }, { freq: 1046, dur: 0.2 }],
-      walk:     [{ freq: 523, dur: 0.15 }, { freq: 440, dur: 0.25 }],
-      warmup:   [{ freq: 660, dur: 0.15 }, { freq: 784, dur: 0.15 }, { freq: 880, dur: 0.2 }],
-      cooldown: [{ freq: 784, dur: 0.15 }, { freq: 659, dur: 0.15 }, { freq: 523, dur: 0.25 }],
-      done:     [{ freq: 523, dur: 0.1 }, { freq: 659, dur: 0.1 }, { freq: 784, dur: 0.1 }, { freq: 1046, dur: 0.35 }],
-    };
-
-    const notes = configs[type] || configs.run;
-    let t = ctx.currentTime + 0.05;
-    notes.forEach(n => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value = n.freq;
-      osc.type = 'sine';
-      gain.gain.setValueAtTime(0.4, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + n.dur);
-      osc.start(t); osc.stop(t + n.dur + 0.05);
-      t += n.dur + 0.04;
-    });
-  } catch(e) { console.warn('Audio error', e); }
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel(); // stop any current speech
+    const utterance = new SpeechSynthesisUtterance(phrases[type] || phrases.run);
+    utterance.volume = 1;
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+  } catch(e) { console.warn('Speech error', e); }
 }
-
-// Unlock audio on first user interaction
-document.addEventListener('click', () => {
-  try { getAudioCtx().resume(); } catch(e) {}
-}, { once: true });
 
 // ══════════════════════════════════════════════
 //  WAKE LOCK
